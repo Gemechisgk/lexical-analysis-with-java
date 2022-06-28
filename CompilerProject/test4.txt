@@ -1,0 +1,61 @@
+integer multiply (x:integer, y:integer) is
+  var result:integer;
+  var minus_sign : boolean;
+begin
+  // figure out sign of result and convert args to absolute values
+  if ( x < 0 & y != 0)
+  begin
+    minus_sign  := true;
+    x := -x;
+  end
+  else
+  begin
+    if y < 0 & x >= 0
+    begin
+      minus_sign := true;
+      y := -y ;
+    end
+    else
+    begin
+      if ( x < 0) & y != 0
+      begin
+        minus_sign := false;
+        x := -x;
+        y := -y;
+      end
+      else
+      begin
+        minus_sign := false;
+      end
+    end
+  end
+
+  result := 0;
+
+  while ( y > 0)
+  begin
+    result := result + x;
+    y := y - 1;
+  end
+
+  if minus_sign = true
+  begin
+  result := -result;
+  end
+  else
+  begin
+    skip;
+  end
+
+  return (result);
+end
+main
+begin
+  var arg_1 : integer;
+  var arg_2 : integer;
+  var result : integer;
+  const five : integer := 5;
+  arg_1 := -66;
+  arg_2 := five ;
+  result := multiply ( arg_1, arg_2 );
+end

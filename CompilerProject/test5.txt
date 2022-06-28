@@ -1,0 +1,14 @@
+var i:integer;
+integer test_fn (x:integer) is
+  var i:integer;
+begin
+  i := 2;
+  return (x);
+end
+
+main
+begin
+  var i:integer;
+  i := 1;
+  i := test_fn (i);
+end

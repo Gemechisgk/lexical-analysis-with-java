@@ -1,0 +1,287 @@
+options {
+	JAVA_UNICODE_ESCAPE = true;
+}
+
+PARSER_BEGIN(CompilerDesign)
+
+public class CompilerDesign{
+
+	public static void main(String args[]) throws ParseException, TokenMgrError {
+        	CompilerDesign parser;
+	
+	if (args.length == 0) {
+        	System.out.println(" Reading from standard input . . .");
+        	parser = new CompilerDesign(System.in);
+		
+      } else if (args.length == 1) {
+        System.out.println(" Reading from file " + args[0] + " . . .");
+        try {   
+        	parser = new CompilerDesign(new java.io.FileInputStream(args[0]));
+        } catch (java.io.FileNotFoundException e) {
+          	System.err.println("File " + args[0] + " not found.");
+          	return;
+        }
+  	} else {
+		System.out.println("CompilerDesign: Usage is one of:");
+        	System.out.println(" java CompilerDesign < inputfile");
+        	System.out.println("OR");
+        	System.out.println(" java CompilerDesign inputfile");
+    
+        return;
+      }
+     
+        try {
+		parser.program();
+		System.out.println("Lexical Analysis Completed.\nParsed Successfully");
+	} catch (ParseException e) {
+		System.out.println(e.getMessage());
+		System.out.println(" Encountered errors during parse.");
+	}
+      
+  	}
+  }
+PARSER_END(CompilerDesign)
+  
+TOKEN_MGR_DECLS :
+{
+  static int commentNesting = 0;
+}
+  
+SKIP:
+{
+	" "
+	| "\n"
+	| "\r"
+	| "\t"
+	| "\f"
+}
+
+
+SKIP :
+{
+< "//" (~["\r", "\t", "\n"])* >|
+  "/*" { commentNesting++; } : IN_COMMENT
+}
+
+<IN_COMMENT> SKIP :
+{
+  "/*" { commentNesting++; }
+| "*/" { commentNesting--;
+  if (commentNesting == 0)
+    SwitchTo(DEFAULT);
+  }
+| <~[]>
+}
+
+/* Reserved Words Token */
+TOKEN:	
+{
+	  <VAR: "var">
+	| <CONST: "const">
+	| <RETURN: "return">
+	| <INTEGER: "integer">
+	| <BOOLEAN: "boolean">
+	| <VOID: "void">
+	| <MAIN: "main">
+	| <IF: "if">
+	| <ELSE: "else">
+	| <TRUE: "true">
+	| <FALSE: "false">
+	| <WHILE: "while">
+	| <BEGIN: "begin">
+	| <END: "end">
+	| <IS: "is">
+	| <SKIP_: "skip">
+}
+/* Operators/Punctuation Token */
+TOKEN: 	
+{
+	 <COMMA: ",">
+	| <SEMICOLON: ";">
+	| <COLON: ":">
+	| <ASSIGNVALUE: ":=">
+	| <LEFTBRACKET: "(">
+	| <RIGHTBRACKET: ")">
+	| <PLUS: "+">
+	| <MINUS: "-">
+	| <TYLDA: "~">
+	| <OR: "|">
+	| <AND: "&">
+	| <EQUALS: "=">
+	| <NOTEQUALS: "!=">
+	| <LESS: "<">
+	| <LESSEQ: "<=">
+	| <GREATER: ">">
+	| <GREATEREQ: ">=">
+}
+/* Identifiers Token*/
+TOKEN: 
+{
+	<INT:(<MINUS>)? (<DIGIT>)+>
+	| <ID:<LETTER> (<LETTER> | <DIGIT>)*>
+	| <#LETTER: ["A"-"Z", "_", "a"-"z"]>
+	| <#DIGIT: ["0"-"9"]>
+}
+
+void program() :
+{}
+{
+  decl_list()
+  function_list()
+  main()
+  <EOF>
+}
+
+void decl_list():
+{}
+{
+ (decl() <SEMICOLON> decl_list())? 
+}
+
+void decl() :
+{}
+{
+ var_decl()| const_decl() 
+}
+
+void var_decl():
+{}
+{
+<VAR><ID><COLON> type()  
+}
+
+void const_decl() :
+{}
+{
+<CONST> <ID> <COLON> type() <ASSIGNVALUE> expression()
+}
+
+void function_list():
+{}
+{
+ (function() function_list())?    
+}
+
+void function() : 
+{}
+{
+  type() <ID> <LEFTBRACKET> parameter_list() <RIGHTBRACKET>
+  <IS>
+   decl_list()
+  <BEGIN>
+    statement_block()
+    <RETURN> <LEFTBRACKET> (expression())? <RIGHTBRACKET> <SEMICOLON>
+  <END>
+}
+
+
+void type():
+{}
+{
+ <INTEGER>|<BOOLEAN>|<VOID> 
+}
+
+void parameter_list():
+{}
+{
+  (nemp_paremeter_list())?      
+}
+
+void nemp_paremeter_list():
+{}
+{
+  <ID> <COLON> type()(<COMMA> nemp_paremeter_list())?
+}
+
+
+void main():
+{}
+{
+<MAIN>
+<BEGIN>
+decl_list()
+statement_block()
+<END>
+}
+
+void statement_block():
+{}
+{
+ (statement() statement_block())?
+}
+
+
+void statement() :
+{}
+{
+  <ID>(<ASSIGNVALUE> expression()|<LEFTBRACKET> arg_list() <RIGHTBRACKET>) <SEMICOLON> 
+| <BEGIN> statement_block() <END>
+| <IF> condition() <BEGIN> statement_block() <END> <ELSE> <BEGIN> statement_block() <END>
+| <WHILE> condition() <BEGIN> statement_block() <END>
+| <SKIP_> <SEMICOLON>
+}
+
+
+
+void expression() : 
+{}
+{
+    
+   <ID>((<LEFTBRACKET> arg_list() <RIGHTBRACKET> | fragment_2())(<LEFTBRACKET> arg_list() <RIGHTBRACKET> fragment_2())?)
+  | (<MINUS> <ID> fragment_2()| <INT> fragment_2()| <TRUE> fragment_2()| <FALSE> fragment_2() | <LEFTBRACKET> expression() <RIGHTBRACKET> fragment_2())
+}
+
+
+
+void biary_arith_op() :
+{}
+{
+  <PLUS> | <MINUS>
+}
+
+void fragment() :
+{}
+{
+  <ID>( <LEFTBRACKET> arg_list() <RIGHTBRACKET> fragment_2()|fragment_2())| <MINUS> <ID> fragment_2()| <INT> fragment_2()| <TRUE> fragment_2()| <FALSE> fragment_2() | <LEFTBRACKET> expression() <RIGHTBRACKET> fragment_2()
+}
+
+void fragment_2() :
+{}
+{
+ (biary_arith_op() fragment())?
+}
+
+void condition() :
+{}
+{
+   <TYLDA> condition() condition_2()
+| <LEFTBRACKET> condition() <RIGHTBRACKET> condition_2()
+| (<ID>( <LEFTBRACKET> arg_list() <RIGHTBRACKET> fragment_2()| fragment_2())| <MINUS> <ID> fragment_2()| <INT> fragment_2()| <TRUE> fragment()| <FALSE> fragment_2())   comp_op() expression() condition_2()
+}
+
+void condition_2() : 
+{}
+{
+   ((<OR> | <AND>) condition() condition_2())|
+   {return;}
+   
+}
+
+
+void comp_op() : 
+{}
+{
+  <EQUALS> | <NOTEQUALS> | <LESS> | <LESSEQ> | <GREATER> | <GREATEREQ>
+}
+
+void arg_list():
+{}
+{
+ (nemp_arg_list())?
+}
+
+void nemp_arg_list():
+{}
+{
+ <ID> (<COMMA> nemp_arg_list())?
+}
